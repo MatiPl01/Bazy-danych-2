@@ -42,6 +42,6 @@ AS
 SELECT *
 FROM TripsView
 WHERE trip_date > SYSDATE
-AND no_available_places > 0;
+    AND no_available_places > 0;
 
 SELECT * FROM AvailableTripsView;

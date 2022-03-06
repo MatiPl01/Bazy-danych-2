@@ -12,7 +12,7 @@ BEGIN
     END IF;
 
     IF hasTripTakenPlace(p_trip_id) THEN
-        RAISE_APPLICATION_ERROR(-20000, 'The trip with id ' || p_trip_id || ' has taken place before');
+        RAISE_APPLICATION_ERROR(-20000, 'The trip with id ' || p_trip_id || ' took place before');
     END IF;
 
     IF p_no_places < 1 THEN
@@ -46,7 +46,7 @@ BEGIN
     addReservation(2, 213, 1);
 END;
 
--- Has taken place before
+-- Took place before
 BEGIN
     addReservation(1, 1, 1);
 END;
@@ -63,17 +63,15 @@ END;
 
 -- Not enough places available
 BEGIN
-    addReservation(3, 1, 2);
+    addReservation(1, 1, 3);
 END;
 
 -- Correct
 BEGIN
-    addReservation(2, 1, 4);
+    addReservation(2, 1, 5);
 END;
 
 SELECT trip_id, getAvailablePlaces(trip_id)
 FROM Trips;
 
 ROLLBACK;
-
--- 5. b)

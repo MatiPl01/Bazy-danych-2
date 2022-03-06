@@ -17,7 +17,8 @@ BEGIN
     SELECT NVL(SUM(no_places), 0)
     INTO l_unavailable_places
     FROM Reservations
-    WHERE trip_id = p_trip_id;
+    WHERE trip_id = p_trip_id
+        AND status != 'c';
 
     RETURN l_max_no_places - l_unavailable_places;
 
@@ -125,7 +126,8 @@ BEGIN
     )
     BULK COLLECT INTO l_result
     FROM ReservationsView
-    WHERE trip_id = p_trip_id;
+    WHERE trip_id = p_trip_id
+        AND status != 'c';
 
     RETURN l_result;
 END;
