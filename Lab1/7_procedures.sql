@@ -1,3 +1,6 @@
+/*
+PROCEDURES BEFORE ADDING TRIGGERS
+*/
 -- 5. a)
 CREATE OR REPLACE PROCEDURE addReservation(
     p_trip_id Trips.trip_id%TYPE,
@@ -318,3 +321,7 @@ BEGIN
 END;
 
 ROLLBACK;
+
+/*
+PROCEDURES AFTER ADDING TRIGGERS
+*/
