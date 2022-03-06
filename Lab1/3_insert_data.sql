@@ -69,20 +69,24 @@ INSERT INTO Reservations (trip_id, person_id, no_places, status)
 VALUES (2, 4, 2, 'n');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (3, 2, 4, 'c');
+VALUES (3, 5, 4, 'c');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (3, 3, 3, 'n');
+VALUES (3, 5, 3, 'n');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (3, 4, 4, 'p');
+VALUES (3, 6, 4, 'p');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (4, 1, 3, 'p');
+VALUES (4, 7, 3, 'p');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (4, 3, 5, 'n');
+VALUES (4, 8, 5, 'n');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (4, 9, 1, 'c');
 
 COMMIT;
+
 
 SELECT * FROM Reservations;

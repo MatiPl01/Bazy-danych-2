@@ -1,26 +1,36 @@
 /*
 SCALAR FUNCTIONS
 */
-CREATE OR REPLACE FUNCTION getAvailablePlaces(
+CREATE OR REPLACE FUNCTION getBookedPlaces(
     p_trip_id Trips.trip_id%TYPE
 )
-RETURN INT
+RETURN Reservations.no_places%TYPE
 AS
-    l_max_no_places INT;
-    l_unavailable_places INT;
+    l_booked_places Reservations.no_places%TYPE;
 BEGIN
-    SELECT max_no_places
-    INTO l_max_no_places
-    FROM Trips
-    WHERE trip_id = p_trip_id;
-
     SELECT NVL(SUM(no_places), 0)
-    INTO l_unavailable_places
+    INTO l_booked_places
     FROM Reservations
     WHERE trip_id = p_trip_id
         AND status != 'c';
 
-    RETURN l_max_no_places - l_unavailable_places;
+    RETURN l_booked_places;
+END;
+
+
+CREATE OR REPLACE FUNCTION getAvailablePlaces(
+    p_trip_id Trips.trip_id%TYPE
+)
+RETURN Reservations.no_places%TYPE
+AS
+    l_available_places Trips.max_no_places%TYPE;
+BEGIN
+    SELECT max_no_places - getBookedPlaces(trip_id)
+    INTO l_available_places
+    FROM Trips
+    WHERE trip_id = p_trip_id;
+
+    RETURN l_available_places;
 
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
@@ -65,6 +75,29 @@ BEGIN
    SELECT
         CASE
             WHEN EXISTS(SELECT * FROM People WHERE person_id = p_person_id) THEN 1
+            ELSE 0
+        END
+   INTO exist
+   FROM Dual;
+
+   IF exist = 1 THEN
+       RETURN TRUE;
+   ELSE
+       RETURN FALSE;
+   END IF;
+END;
+
+
+CREATE OR REPLACE FUNCTION doesReservationExist(
+    p_reservation_id Reservations.reservation_id%TYPE
+)
+RETURN BOOLEAN
+AS
+    exist NUMBER;
+BEGIN
+   SELECT
+        CASE
+            WHEN EXISTS(SELECT * FROM Reservations WHERE reservation_id = p_reservation_id) THEN 1
             ELSE 0
         END
    INTO exist
