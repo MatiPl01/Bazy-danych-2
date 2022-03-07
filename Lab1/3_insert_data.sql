@@ -81,12 +81,15 @@ INSERT INTO Reservations (trip_id, person_id, no_places, status)
 VALUES (4, 7, 3, 'p');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (4, 8, 5, 'n');
+VALUES (4, 9, 1, 'c');
 
 INSERT INTO Reservations (trip_id, person_id, no_places, status)
-VALUES (4, 9, 1, 'c');
+VALUES (4, 8, 5, 'n');
 
 COMMIT;
 
+-- select trip_id, MAX_NO_PLACES, GETAVAILABLEPLACES(TRIP_ID) from trips;
+-- delete from reservations;
+-- ALTER TABLE RESERVATIONS MODIFY(RESERVATION_ID GENERATED AS IDENTITY (START WITH 1));
 
 SELECT * FROM Reservations;
