@@ -30,7 +30,7 @@ SELECT
     trip_date,
     name AS trip_name,
     max_no_places,
-    GetAvailablePlaces(trip_id) AS no_available_places
+    getAvailablePlaces(trip_id) AS no_available_places
 FROM Trips;
 
 SELECT * FROM TripsView;

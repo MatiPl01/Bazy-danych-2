@@ -1,0 +1,1072 @@
+/*
+ * CREATE TABLES
+ */
+CREATE TABLE People (
+    person_id INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    firstname VARCHAR2(50) NOT NULL,
+    lastname VARCHAR2(50) NOT NULL,
+    CONSTRAINT People_pk PRIMARY KEY (person_id)
+);
+
+CREATE TABLE Trips (
+    trip_id INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    name VARCHAR2(100) NOT NULL,
+    country VARCHAR2(50) NOT NULL,
+    trip_date DATE NOT NULL,
+    max_no_places INT NOT NULL,
+    CONSTRAINT Trips_pk PRIMARY KEY (trip_id)
+);
+
+CREATE TABLE Reservations (
+    reservation_id INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    trip_id INT NOT NULL,
+    person_id INT NOT NULL,
+    status CHAR(1) NOT NULL,
+    no_places INT NOT NULL,
+    CONSTRAINT Reservations_pk PRIMARY KEY (reservation_id)
+);
+
+CREATE TABLE ReservationsLog (
+    log_id INT GENERATED ALWAYS AS IDENTITY NOT NULL,
+    reservation_id INT NOT NULL,
+    log_date DATE NOT NULL,
+    status CHAR(1) NOT NULL,
+    no_places INT NOT NULL,
+    CONSTRAINT ReservationsLog_pk PRIMARY KEY (log_id)
+);
+
+COMMIT;
+
+/*
+ * ADD CONSTRAINTS
+ */
+-- Trips
+ALTER TABLE Trips
+ADD CONSTRAINT Trips_chk1 CHECK (max_no_places > 0);
+
+-- Reservations
+ALTER TABLE Reservations
+ADD CONSTRAINT Reservations_fk1 FOREIGN KEY (person_id)
+REFERENCES People(person_id);
+
+ALTER TABLE Reservations
+ADD CONSTRAINT Reservations_fk2 FOREIGN KEY (trip_id)
+REFERENCES Trips(trip_id);
+
+ALTER TABLE Reservations
+ADD CONSTRAINT Reservations_chk1 CHECK (status IN ('n', 'p', 'c'));
+
+ALTER TABLE Reservations
+ADD CONSTRAINT Reservations_chk2 CHECK (no_places > 0);
+
+-- ReservationsLog
+ALTER TABLE ReservationsLog
+ADD CONSTRAINT ReservationLog_chk1 CHECK (status IN ('n', 'p', 'c'));
+
+ALTER TABLE ReservationsLog
+ADD CONSTRAINT ReservationsLog_chk2 CHECK (no_places > 0);
+
+
+/*
+ * INSERT DATA INTO TABLES
+ */
+-- People table
+INSERT INTO People (firstname, lastname)
+VALUES ('Adam', 'Kowalski');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Jan', 'Nowak');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Andrzej', 'Kowalczyk');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Anna', 'Klimek');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Zbigniew', 'Zygora');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Rafał', 'Noga');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Aleksandra', 'Sobczak');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Maryla', 'Ordon');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Piotr', 'Słota');
+
+INSERT INTO People (firstname, lastname)
+VALUES ('Aleks', 'Stachowiak');
+
+COMMIT;
+
+SELECT * FROM People;
+
+
+-- Trips table
+INSERT INTO Trips (name, country, trip_date, max_no_places)
+VALUES ('wycieczka do Paryza', 'Francja', TO_DATE('2021-09-03', 'yyyy-mm-dd'), 5);
+
+INSERT INTO Trips (name, country, trip_date, max_no_places)
+VALUES ('wycieczka do Krakowa', 'Polska', TO_DATE('2022-12-05', 'yyyy-mm-dd'), 8);
+
+INSERT INTO Trips (name, country, trip_date, max_no_places)
+VALUES ('wycieczka do Warszawy', 'Polska', TO_DATE('2022-04-11', 'yyyy-mm-dd'), 12);
+
+INSERT INTO Trips (name, country, trip_date, max_no_places)
+VALUES ('wycieczka do Madrytu', 'Hiszpania', TO_DATE('2022-07-02', 'yyyy-mm-dd'), 8);
+
+COMMIT;
+
+SELECT * FROM Trips;
+
+
+-- Reservations table
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (1, 1, 1, 'n');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (1, 2, 2, 'p');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (2, 1, 1, 'p');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (2, 2, 1, 'c');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (2, 4, 2, 'n');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (3, 5, 4, 'c');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (3, 5, 3, 'n');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (3, 6, 4, 'p');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (4, 7, 3, 'p');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (4, 9, 1, 'c');
+
+INSERT INTO Reservations (trip_id, person_id, no_places, status)
+VALUES (4, 8, 5, 'n');
+
+COMMIT;
+
+SELECT * FROM Reservations;
+
+
+/*
+ * CREATE SCALAR FUNCTIONS
+ */
+CREATE OR REPLACE FUNCTION getBookedPlaces(
+    p_trip_id Trips.trip_id%TYPE
+)
+RETURN Reservations.no_places%TYPE
+AS
+    l_booked_places Reservations.no_places%TYPE;
+BEGIN
+    SELECT NVL(SUM(no_places), 0)
+    INTO l_booked_places
+    FROM Reservations
+    WHERE trip_id = p_trip_id
+        AND status != 'c';
+
+    RETURN l_booked_places;
+END;
+
+
+CREATE OR REPLACE FUNCTION getAvailablePlaces(
+    p_trip_id Trips.trip_id%TYPE
+)
+RETURN Reservations.no_places%TYPE
+AS
+    l_available_places Trips.max_no_places%TYPE;
+BEGIN
+    SELECT max_no_places - getBookedPlaces(trip_id)
+    INTO l_available_places
+    FROM Trips
+    WHERE trip_id = p_trip_id;
+
+    RETURN l_available_places;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20000, 'Trip with id: ' || p_trip_id || ' does not exist');
+            RETURN NULL;
+END;
+
+
+CREATE OR REPLACE FUNCTION doesTripExist(
+    p_trip_id Trips.trip_id%TYPE
+)
+RETURN BOOLEAN
+AS
+    exist NUMBER;
+BEGIN
+	SELECT
+		CASE
+			WHEN EXISTS(SELECT * FROM Trips WHERE trip_id = p_trip_id) THEN 1
+			ELSE 0
+		END
+	INTO exist
+	FROM Dual;
+
+	IF exist = 1 THEN
+	   RETURN TRUE;
+	ELSE
+	   RETURN FALSE;
+	END IF;
+END;
+
+
+CREATE OR REPLACE FUNCTION doesPersonExist(
+    p_person_id People.person_id%TYPE
+)
+RETURN BOOLEAN
+AS
+    exist NUMBER;
+BEGIN
+   SELECT
+        CASE
+            WHEN EXISTS(SELECT * FROM People WHERE person_id = p_person_id) THEN 1
+            ELSE 0
+        END
+   INTO exist
+   FROM Dual;
+
+   IF exist = 1 THEN
+       RETURN TRUE;
+   ELSE
+       RETURN FALSE;
+   END IF;
+END;
+
+
+CREATE OR REPLACE FUNCTION doesReservationExist(
+    p_reservation_id Reservations.reservation_id%TYPE
+)
+RETURN BOOLEAN
+AS
+    exist NUMBER;
+BEGIN
+   SELECT
+        CASE
+            WHEN EXISTS(SELECT * FROM Reservations WHERE reservation_id = p_reservation_id) THEN 1
+            ELSE 0
+        END
+   INTO exist
+   FROM Dual;
+
+   IF exist = 1 THEN
+       RETURN TRUE;
+   ELSE
+       RETURN FALSE;
+   END IF;
+END;
+
+
+CREATE OR REPLACE FUNCTION hasTripTakenPlace(
+    p_trip_id Trips.trip_id%TYPE,
+    p_date DATE DEFAULT SYSDATE
+)
+RETURN BOOLEAN
+AS
+    l_trip_date DATE;
+BEGIN
+    IF NOT doesTripExist(p_trip_id) THEN
+        RAISE_APPLICATION_ERROR(-20000, 'There is no trip with id ' || p_trip_id || ' in the database');
+    END IF;
+
+    SELECT trip_date
+    INTO l_trip_date
+    FROM Trips
+    WHERE trip_id = p_trip_id;
+
+    IF l_trip_date <= p_date THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+
+
+/*
+ * CREATE VIEWS
+ */
+-- reservations
+CREATE OR REPLACE VIEW ReservationsView
+AS
+SELECT
+    t.trip_id,
+    t.country,
+    t.trip_date,
+    t.name AS trip_name,
+    p.person_id,
+    p.firstname,
+    p.lastname,
+    r.reservation_id,
+    r.no_places,
+    r.status
+FROM Trips t
+INNER JOIN Reservations r
+ON r.trip_id = t.trip_id
+INNER JOIN People p
+on p.person_id = r.person_id;
+
+SELECT * FROM ReservationsView;
+
+
+-- trips
+CREATE OR REPLACE VIEW TripsView
+AS
+SELECT
+    trip_id,
+    country,
+    trip_date,
+    name AS trip_name,
+    max_no_places,
+    getAvailablePlaces(trip_id) AS no_available_places
+FROM Trips;
+
+SELECT * FROM TripsView;
+
+
+-- available trips
+CREATE OR REPLACE VIEW AvailableTripsView
+AS
+SELECT *
+FROM TripsView
+WHERE trip_date > SYSDATE
+    AND no_available_places > 0;
+
+SELECT * FROM AvailableTripsView;
+
+
+/*
+ * CREATE OBJECTS (used in table functions)
+ */
+CREATE OR REPLACE TYPE TripParticipantObject AS OBJECT (
+    firstname VARCHAR2(50),
+    lastname VARCHAR2(50),
+    reservation_id INT,
+    no_places INT,
+    status CHAR(1)
+);
+
+CREATE OR REPLACE TYPE TripParticipantsTable IS TABLE OF TripParticipantObject;
+
+
+CREATE OR REPLACE TYPE PersonReservationObject AS OBJECT (
+    trip_id INT,
+    country VARCHAR2(50),
+    trip_date DATE,
+    trip_name VARCHAR2(100),
+    reservation_id INT,
+    no_places INT,
+    status CHAR(1)
+);
+
+CREATE OR REPLACE TYPE PeopleReservationsTable IS TABLE OF PersonReservationObject;
+
+
+CREATE OR REPLACE TYPE AvailableTripObject AS OBJECT (
+    trip_id INT,
+    name VARCHAR2(100),
+    country VARCHAR2(50),
+    trip_date DATE,
+    max_no_places INT
+);
+
+CREATE OR REPLACE TYPE AvailableTripsTable IS TABLE OF AvailableTripObject;
+
+
+/*
+ * TABLE FUNCTIONS
+ */
+CREATE OR REPLACE FUNCTION getTripParticipants(
+    p_trip_id Trips.trip_id%TYPE
+)
+RETURN TripParticipantsTable
+AS
+    l_result TripParticipantsTable;
+BEGIN
+    IF NOT doesTripExist(p_trip_id) THEN
+        RAISE_APPLICATION_ERROR(-20000, 'There are is no trip with id ' || p_trip_id || ' in the database');
+    END IF;
+
+    SELECT TripParticipantObject(
+        firstname,
+        lastname,
+        reservation_id,
+        no_places,
+        status
+    )
+    BULK COLLECT INTO l_result
+    FROM ReservationsView
+    WHERE trip_id = p_trip_id
+        AND status != 'c';
+
+    RETURN l_result;
+END;
+
+SELECT * FROM getTripParticipants(1);
+SELECT * FROM getTripParticipants(2);
+SELECT * FROM getTripParticipants(3);
+SELECT * FROM getTripParticipants(4);
+SELECT * FROM getTripParticipants(5); -- no trip with id 5
+
+
+CREATE OR REPLACE FUNCTION getPersonReservations(
+    p_person_id People.person_id%TYPE
+)
+RETURN PeopleReservationsTable
+AS
+    l_result PeopleReservationsTable;
+BEGIN
+    IF NOT doesPersonExist(p_person_id) THEN
+        RAISE_APPLICATION_ERROR(-20000, 'There is no person with id ' || p_person_id || ' in the database');
+    END IF;
+
+    SELECT PersonReservationObject(
+        trip_id,
+        country,
+        trip_date,
+        trip_name,
+        reservation_id,
+        no_places,
+        status
+    )
+    BULK COLLECT INTO l_result
+    FROM ReservationsView
+    WHERE person_id = p_person_id;
+
+    RETURN l_result;
+END;
+
+SELECT * FROM getPersonReservations(1);
+SELECT * FROM getPersonReservations(2);
+SELECT * FROM getPersonReservations(3); -- this person has no trips
+SELECT * FROM getPersonReservations(4);
+SELECT * FROM getPersonReservations(5);
+SELECT * FROM getPersonReservations(11); -- there is no person with id 11
+
+
+-- (When there are no remaining places, a trip is considered unavailable - see Spain in examples)
+-- (if p_from_date is lower than the current date, a function below will return only trips which
+--  date is between the current date and the p_to_date)
+CREATE OR REPLACE FUNCTION getAvailableTripsTo(
+    p_country_name Trips.country%TYPE,
+    p_from_date DATE,
+    p_to_date DATE
+)
+RETURN AvailableTripsTable
+AS
+    l_result AvailableTripsTable;
+BEGIN
+    -- Show warning information if the current date is greater than the p_from_date
+    IF p_from_date < SYSDATE THEN
+        DBMS_OUTPUT.PUT_LINE('Warning: Specified trip start date (' || p_from_date ||
+                             ') is lower than the current date.' || 'Current date (' || SYSDATE ||
+                             ') will be used instead');
+    END IF;
+
+    SELECT AvailableTripObject(
+        trip_id,
+        trip_name,
+        country,
+        trip_date,
+        max_no_places
+    )
+    BULK COLLECT
+    INTO l_result
+    FROM AvailableTripsView
+    WHERE country = p_country_name
+        AND trip_date BETWEEN p_from_date AND p_to_date;
+
+    RETURN l_result;
+END;
+
+SELECT * FROM TripsView;
+
+SELECT * FROM getAvailableTripsTo('Polska', '2020-01-01', '2022-12-31');
+SELECT * FROM getAvailableTripsTo('Polska', '2022-06-01', '2022-12-31');
+SELECT * FROM getAvailableTripsTo('Hiszpania', '2020-06-01', '2022-12-31'); -- no available places
+SELECT * FROM getAvailableTripsTo('Francja', '2020-01-01', '2022-12-31');   -- this trip took place before the current date
+SELECT * FROM getAvailableTripsTo('Chiny', '2020-01-01', '2022-12-31');     -- there are no trips to China in the database
+
+
+/*
+ * PROCEDURES (before adding triggers)
+ */
+CREATE OR REPLACE PROCEDURE addReservation(
+    p_trip_id Trips.trip_id%TYPE,
+    p_person_id People.person_id%TYPE,
+    p_no_places Reservations.no_places%TYPE
+)
+AS
+    l_available_places Reservations.no_places%TYPE;
+BEGIN
+    IF NOT doesPersonExist(p_person_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The person with id ' || p_person_id || ' does not exit');
+    END IF;
+
+    IF hasTripTakenPlace(p_trip_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The trip with id ' || p_trip_id || ' took place before');
+    END IF;
+
+    IF p_no_places < 1 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Cannot book less than 1 place for a trip');
+    END IF;
+
+    l_available_places := getAvailablePlaces(p_trip_id);
+
+    IF l_available_places = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There are no available places for a trip with id ' || p_trip_id);
+    ELSIF l_available_places < p_no_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There are only ' || l_available_places ||
+                                        ' places available for a trip with id ' || p_trip_id);
+    END IF;
+
+    INSERT INTO Reservations (trip_id, person_id, status, no_places)
+    VALUES (p_trip_id, p_person_id, 'n', p_no_places);
+
+    COMMIT;
+END;
+
+-- tests
+SELECT trip_id, getAvailablePlaces(trip_id)
+FROM Trips;
+
+-- Trip does not exist
+BEGIN
+    addReservation(5, 1, 1);
+END;
+
+-- Person does not exist
+BEGIN
+    addReservation(2, 213, 1);
+END;
+
+-- Took place before
+BEGIN
+    addReservation(1, 1, 1);
+END;
+
+-- Cannot book less than 1 place
+BEGIN
+    addReservation(4, 1, 0);
+END;
+
+-- No available places
+BEGIN
+    addReservation(4, 1, 1);
+END;
+
+-- Not enough places available
+BEGIN
+    addReservation(3, 1, 6);
+END;
+
+-- Correct
+BEGIN
+    addReservation(2, 1, 5);
+END;
+
+SELECT trip_id, getAvailablePlaces(trip_id)
+FROM Trips;
+
+
+CREATE OR REPLACE PROCEDURE modifyReservationStatus(
+    p_reservation_id Reservations.reservation_id%TYPE,
+    p_status Reservations.status%TYPE
+)
+AS
+    l_curr_status Reservations.status%TYPE;
+    l_trip_id Reservations.trip_id%TYPE;
+    l_no_places Reservations.no_places%TYPE;
+    l_available_places Reservations.no_places%TYPE;
+BEGIN
+    SELECT
+        status,
+        trip_id,
+        no_places
+    INTO
+        l_curr_status,
+        l_trip_id,
+        l_no_places
+    FROM Reservations
+    WHERE reservation_id = p_reservation_id;
+
+    CASE p_status
+    WHEN l_curr_status THEN
+        DBMS_OUTPUT.PUT_LINE('The reservation with id ' || p_reservation_id ||
+                             ' has already the status: ' || p_status);
+        RETURN;
+    WHEN 'c' THEN
+        NULL;
+    WHEN 'n' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Cannot change the status of the reservation with id ' ||
+                                        p_reservation_id || ' to: n');
+    WHEN 'p' THEN
+        -- Check if can make cancelled reservation available (paid) again
+        -- (check if there are enough empty places for a trip)
+        IF l_curr_status = 'c' THEN
+            l_available_places := getAvailablePlaces(l_trip_id);
+
+            IF l_available_places < l_no_places THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Not enough places available to update the cancelled reservation status');
+            END IF;
+        END IF;
+    ELSE
+        RAISE_APPLICATION_ERROR(-20001, 'Status: ' || p_status || ' is not a valid reservation status');
+    END CASE;
+
+    -- If everything is correct, update teh reservation status
+    UPDATE Reservations
+    SET status = p_status
+    WHERE reservation_id = p_reservation_id;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20001, 'There is no reservation with id ' || p_reservation_id || ' in the database');
+
+    COMMIT;
+END;
+
+-- tests
+SELECT *
+FROM Reservations;
+
+-- Set the same status as the current one
+BEGIN
+   modifyReservationStatus(1, 'n');
+END;
+
+-- [Error] Change paid reservation status to the new status
+BEGIN
+   modifyReservationStatus(2, 'n');
+END;
+
+-- [Error] Change cancelled reservation status to the new status
+BEGIN
+   modifyReservationStatus(4, 'n');
+END;
+
+SELECT *
+FROM Reservations
+WHERE status = 'c'
+    AND getAvailablePlaces(trip_id) < no_places;
+
+-- [Error] Change cancelled reservation to paid when there are not enough places available
+BEGIN
+   modifyReservationStatus(10, 'p');
+END;
+
+-- [Error] Invalid reservation status
+BEGIN
+   modifyReservationStatus(10, 'z');
+END;
+
+-- [Error] Reservation does not exist
+BEGIN
+   modifyReservationStatus(12, 'c');
+END;
+
+-- Correct modification from paid to cancelled
+BEGIN
+   modifyReservationStatus(2, 'c');
+END;
+
+-- Correct modification from new to cancelled
+BEGIN
+   modifyReservationStatus(1, 'c');
+END;
+
+
+CREATE OR REPLACE PROCEDURE modifyReservationNoPlaces(
+    p_reservation_id Reservations.reservation_id%TYPE,
+    p_no_places Reservations.no_places%TYPE
+)
+AS
+    l_curr_no_places Reservations.no_places%TYPE;
+    l_available_places Reservations.no_places%TYPE;
+BEGIN
+    SELECT
+        no_places,
+        getAvailablePlaces(trip_id)
+    INTO
+        l_curr_no_places,
+        l_available_places
+    FROM Reservations
+    WHERE reservation_id = p_reservation_id;
+
+    IF p_no_places <= 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The number of booked places should be greater than 0');
+    ELSIF p_no_places - l_curr_no_places > l_available_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There are not enough free places. Max possible number of places to book: ' ||
+                                       (l_available_places + l_curr_no_places));
+    END IF;
+
+    UPDATE Reservations
+    SET no_places = p_no_places
+    WHERE reservation_id = p_reservation_id;
+
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20001, 'There is no reservation with id ' || p_reservation_id || ' in the database');
+
+    COMMIT;
+END;
+
+-- tests
+SELECT reservation_id, no_places, getAvailablePlaces(trip_id) AS available_places
+FROM Reservations;
+
+-- [Error] Wrong number of booked places (<= 0)
+BEGIN
+   modifyReservationNoPlaces(1, 0);
+END;
+
+-- [Error] Too many booked places
+/*
+already booked:              1
+available:                   2
+can book at most (in total): 3
+*/
+BEGIN
+   modifyReservationNoPlaces(1, 4);
+END;
+
+-- Correct
+BEGIN
+   modifyReservationNoPlaces(1, 3);
+END;
+
+
+CREATE OR REPLACE PROCEDURE modifyMaxNoPlaces(
+    p_trip_id Trips.trip_id%TYPE,
+    p_max_no_places Trips.max_no_places%TYPE
+)
+AS
+    l_booked_places Reservations.no_places%TYPE;
+    l_curr_max_no_places Trips.max_no_places%TYPE;
+BEGIN
+    SELECT
+        max_no_places,
+        getBookedPlaces(p_trip_id)
+    INTO
+        l_curr_max_no_places,
+        l_booked_places
+    FROM Trips
+    WHERE trip_id = p_trip_id;
+
+    IF p_max_no_places = l_curr_max_no_places THEN
+        DBMS_OUTPUT.PUT_LINE('The trip with id ' || p_trip_id ||
+                             ' has already the maximum number of places set to ' || l_curr_max_no_places);
+        RETURN;
+    END IF;
+
+    IF p_max_no_places < l_booked_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The maximum number of places (' || p_max_no_places ||
+                                        ') cannot be lower than the total number of booked places (' || l_booked_places ||
+                                        ') for a trip wit id ' || p_trip_id);
+    END IF;
+
+    UPDATE Trips
+    SET max_no_places = p_max_no_places
+    WHERE trip_id = p_trip_id;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20001, 'There is no trip with id ' || p_trip_id || ' in the database');
+    COMMIT;
+END;
+
+-- tests
+SELECT trip_id, max_no_places, getBookedPlaces(trip_id) AS booked_places
+FROM Trips;
+
+-- [Error] New max_no_places is lower than the total booked places for a trip
+BEGIN
+   modifyMaxNoPlaces(3, 6);
+END;
+
+-- [Error] Trip doesn't exist
+BEGIN
+   modifyMaxNoPlaces(6, 6);
+END;
+
+-- Correct (set the same max_no_places as its current value)
+BEGIN
+   modifyMaxNoPlaces(4, 8);
+END;
+
+-- Correct (modify the max_no_places value)
+BEGIN
+   modifyMaxNoPlaces(3, 7);
+END;
+
+
+/*
+ * TRIGGERS
+ */
+CREATE OR REPLACE TRIGGER AI_ReservationInsert
+AFTER INSERT
+ON Reservations
+FOR EACH ROW
+BEGIN
+    INSERT INTO ReservationsLog (reservation_id, log_date, status, no_places)
+    VALUES (:NEW.reservation_id, SYSDATE, :NEW.status, :NEW.no_places);
+END;
+
+
+CREATE OR REPLACE TRIGGER AU_ReservationStatusUpdate
+AFTER UPDATE
+OF status ON Reservations
+FOR EACH ROW
+BEGIN
+    IF :NEW.status != :OLD.status THEN
+        INSERT INTO ReservationsLog (reservation_id, log_date, status, no_places)
+        VALUES (:NEW.reservation_id, SYSDATE, :NEW.status, :NEW.no_places);
+    END IF;
+END;
+
+
+CREATE OR REPLACE TRIGGER AU_ReservationNoPlacesUpdate
+AFTER UPDATE
+OF no_places ON Reservations
+FOR EACH ROW
+BEGIN
+    IF :NEW.no_places != :OLD.no_places THEN
+        INSERT INTO ReservationsLog (reservation_id, log_date, status, no_places)
+        VALUES (:NEW.reservation_id, SYSDATE, :NEW.status, :NEW.no_places);
+    END IF;
+END;
+
+
+
+-- tests
+SELECT trip_id, trip_date, getAvailablePlaces(trip_id)
+FROM Trips;
+
+-- insert the new reservation
+BEGIN
+    addReservation(2, 1, 1);
+END;
+
+-- change reservation status
+DECLARE
+    l_reservation_id Reservations.reservation_id%TYPE;
+BEGIN
+    SELECT MAX(reservation_id)
+    INTO l_reservation_id
+    FROM Reservations;
+
+    modifyReservationStatus(l_reservation_id, 'p');
+END;
+
+-- change reservation number of places
+DECLARE
+    l_reservation_id Reservations.reservation_id%TYPE;
+BEGIN
+    SELECT MAX(reservation_id)
+    INTO l_reservation_id
+    FROM Reservations;
+
+    modifyReservationNoPlaces(l_reservation_id, 2);
+END;
+
+SELECT * FROM Reservations;
+SELECT * FROM ReservationsLog;
+
+DELETE FROM ReservationsLog;
+DELETE FROM Reservations WHERE reservation_id > 11;
+
+
+-- trigger before reservation insert
+CREATE OR REPLACE TRIGGER BI_ReservationInsert
+BEFORE INSERT
+ON Reservations
+FOR EACH ROW
+DECLARE
+    l_available_places Reservations.no_places%TYPE;
+BEGIN
+    IF NOT doesPersonExist(:NEW.person_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The person with id ' || :NEW.person_id || ' does not exit');
+    END IF;
+
+    IF :NEW.no_places < 1 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Cannot book less than 1 place for a trip');
+    END IF;
+
+    l_available_places := getAvailablePlaces(:NEW.trip_id);
+
+    IF l_available_places = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There are no available places for a trip with id ' || :NEW.trip_id);
+    ELSIF l_available_places < :NEW.no_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There are only ' || l_available_places ||
+                                        ' places available for a trip with id ' || :NEW.trip_id);
+    END IF;
+END;
+
+
+-- 7. trigger before reservation status change
+CREATE OR REPLACE TRIGGER BU_ReservationStatusUpdate
+BEFORE UPDATE
+OF status ON Reservations
+FOR EACH ROW
+DECLARE
+    PRAGMA AUTONOMOUS_TRANSACTION;
+    l_available_places Reservations.no_places%TYPE;
+BEGIN
+    CASE :NEW.status
+    WHEN :OLD.status THEN
+        DBMS_OUTPUT.PUT_LINE('The reservation with id ' || :NEW.reservation_id ||
+                             ' has already the status: ' || :NEW.status);
+        RETURN;
+    WHEN 'c' THEN
+        NULL;
+    WHEN 'n' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Cannot change the status of the reservation with id ' ||
+                                        :NEW.reservation_id || ' to: n');
+    WHEN 'p' THEN
+        -- Check if can make cancelled reservation available (paid) again
+        -- (check if there are enough empty places for a trip)
+        IF :OLD.status = 'c' THEN
+            l_available_places := getAvailablePlaces(:NEW.trip_id);
+
+            IF l_available_places < :NEW.no_places THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Not enough places available to update the cancelled reservation status');
+            END IF;
+        END IF;
+    ELSE
+        RAISE_APPLICATION_ERROR(-20001, 'Status: ' || :NEW.status || ' is not a valid reservation status');
+    END CASE;
+END;
+
+
+-- 7. trigger before reservation number of places change
+CREATE OR REPLACE TRIGGER BU_ReservationNoPlacesUpdate
+BEFORE UPDATE
+OF no_places ON Reservations
+FOR EACH ROW
+DECLARE
+    PRAGMA AUTONOMOUS_TRANSACTION;
+    l_available_places Reservations.no_places%TYPE;
+BEGIN
+    l_available_places := getAvailablePlaces(:NEW.trip_id);
+
+    IF :NEW.no_places <= 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The number of booked places should be greater than 0');
+    ELSIF :NEW.no_places - :OLD.no_places > l_available_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There are not enough free places. Max possible number of places to book: ' ||
+                                       (l_available_places + :OLD.no_places));
+    END IF;
+END;
+
+
+-- 7. trigger before trip max places number change
+CREATE OR REPLACE TRIGGER BU_TripMaxNoPlacesUpdate
+BEFORE UPDATE
+OF max_no_places ON Trips
+FOR EACH ROW
+DECLARE
+    l_booked_places Reservations.no_places%TYPE;
+BEGIN
+    l_booked_places := getBookedPlaces(:NEW.trip_id);
+
+    IF :NEW.max_no_places = :OLD.max_no_places THEN
+        DBMS_OUTPUT.PUT_LINE('The trip with id ' || :NEW.trip_id ||
+                             ' has already the maximum number of places set to ' || :OLD.max_no_places);
+        RETURN;
+    END IF;
+
+    IF :NEW.max_no_places < l_booked_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The maximum number of places (' || :NEW.max_no_places ||
+                                        ') cannot be lower than the total number of booked places (' || l_booked_places ||
+                                        ') for a trip wit id ' || :NEW.trip_id);
+    END IF;
+END;
+
+
+/*
+ * PROCEDURES (after adding triggers)
+ */
+CREATE OR REPLACE PROCEDURE addReservation(
+    p_trip_id Trips.trip_id%TYPE,
+    p_person_id People.person_id%TYPE,
+    p_no_places Reservations.no_places%TYPE
+)
+AS
+BEGIN
+    IF hasTripTakenPlace(p_trip_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The trip with id ' || p_trip_id || ' took place before');
+    END IF;
+
+    INSERT INTO Reservations (trip_id, person_id, status, no_places)
+    VALUES (p_trip_id, p_person_id, 'n', p_no_places);
+
+    COMMIT;
+END;
+
+
+CREATE OR REPLACE PROCEDURE modifyReservationStatus(
+    p_reservation_id Reservations.reservation_id%TYPE,
+    p_status Reservations.status%TYPE
+)
+AS
+BEGIN
+    IF NOT doesReservationExist(p_reservation_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There is no reservation with id ' || p_reservation_id || ' in the database');
+    END IF;
+
+    -- If everything is correct, update teh reservation status
+    UPDATE Reservations
+    SET status = p_status
+    WHERE reservation_id = p_reservation_id;
+
+    COMMIT;
+END;
+
+
+CREATE OR REPLACE PROCEDURE modifyReservationNoPlaces(
+    p_reservation_id Reservations.reservation_id%TYPE,
+    p_no_places Reservations.no_places%TYPE
+)
+AS
+BEGIN
+    IF NOT doesReservationExist(p_reservation_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There is no reservation with id ' || p_reservation_id || ' in the database');
+    END IF;
+
+    UPDATE Reservations
+    SET no_places = p_no_places
+    WHERE reservation_id = p_reservation_id;
+
+    COMMIT;
+END;
+
+
+CREATE OR REPLACE PROCEDURE modifyMaxNoPlaces(
+    p_trip_id Trips.trip_id%TYPE,
+    p_max_no_places Trips.max_no_places%TYPE
+)
+AS
+BEGIN
+    IF NOT doesTripExist(p_trip_id) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'There is no trip with id ' || p_trip_id || ' in the database');
+    END IF;
+
+    UPDATE Trips
+    SET max_no_places = p_max_no_places
+    WHERE trip_id = p_trip_id;
+END;

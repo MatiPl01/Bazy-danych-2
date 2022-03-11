@@ -68,7 +68,7 @@ END;
 
 -- Not enough places available
 BEGIN
-    addReservation(1, 1, 3);
+    addReservation(3, 1, 6);
 END;
 
 -- Correct
@@ -78,7 +78,6 @@ END;
 
 SELECT trip_id, getAvailablePlaces(trip_id)
 FROM Trips;
-
 
 -- 5. b)
 CREATE OR REPLACE PROCEDURE modifyReservationStatus(
@@ -237,16 +236,16 @@ END;
 -- [Error] Too many booked places
 /*
 already booked:              1
-available:                   2
-can book at most (in total): 3
+available:                   5
+can book at most (in total): 6
 */
 BEGIN
-   modifyReservationNoPlaces(1, 4);
+   modifyReservationNoPlaces(1, 7);
 END;
 
 -- Correct
 BEGIN
-   modifyReservationNoPlaces(1, 3);
+   modifyReservationNoPlaces(1, 6);
 END;
 
 
@@ -451,7 +450,6 @@ BEGIN
    modifyReservationStatus(1, 'c');
 END;
 
-
 -- c)
 CREATE OR REPLACE PROCEDURE modifyReservationNoPlaces(
     p_reservation_id Reservations.reservation_id%TYPE,
@@ -482,11 +480,10 @@ END;
 -- [Error] Too many booked places
 /*
 already booked:              1
-available:                   2
-can book at most (in total): 3
+can book at most (in total): 5
 */
 BEGIN
-   modifyReservationNoPlaces(1, 4);
+   modifyReservationNoPlaces(1, 6);
 END;
 
 -- Correct

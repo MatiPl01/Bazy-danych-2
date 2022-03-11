@@ -49,19 +49,19 @@ RETURN BOOLEAN
 AS
     exist NUMBER;
 BEGIN
-   SELECT
+    SELECT
         CASE
             WHEN EXISTS(SELECT * FROM Trips WHERE trip_id = p_trip_id) THEN 1
             ELSE 0
         END
-   INTO exist
-   FROM Dual;
+    INTO exist
+    FROM Dual;
 
-   IF exist = 1 THEN
+    IF exist = 1 THEN
        RETURN TRUE;
-   ELSE
+    ELSE
        RETURN FALSE;
-   END IF;
+    END IF;
 END;
 
 
@@ -169,7 +169,7 @@ SELECT * FROM getTripParticipants(1);
 SELECT * FROM getTripParticipants(2);
 SELECT * FROM getTripParticipants(3);
 SELECT * FROM getTripParticipants(4);
-SELECT * FROM getTripParticipants(5);
+SELECT * FROM getTripParticipants(5); -- no trip with id 5
 
 
 -- 4. b)
@@ -202,13 +202,16 @@ END;
 
 SELECT * FROM getPersonReservations(1);
 SELECT * FROM getPersonReservations(2);
-SELECT * FROM getPersonReservations(3);
+SELECT * FROM getPersonReservations(3); -- this person has no trips
 SELECT * FROM getPersonReservations(4);
-SELECT * FROM getPersonReservations(5);  -- this person has no trips
+SELECT * FROM getPersonReservations(5);
 SELECT * FROM getPersonReservations(11); -- there is no person with id 11
 
 
--- 4. c) (When there are no remaining places, a trip is considered unavailable - see France below)
+-- 4. c)
+-- (When there are no remaining places, a trip is considered unavailable - see Spain in examples)
+-- (if p_from_date is lower than the current date, a function below will return only trips which
+--  date is between the current date and the p_to_date)
 CREATE OR REPLACE FUNCTION getAvailableTripsTo(
     p_country_name Trips.country%TYPE,
     p_from_date DATE,
@@ -218,6 +221,13 @@ RETURN AvailableTripsTable
 AS
     l_result AvailableTripsTable;
 BEGIN
+    -- Show warning information if the current date is greater than the p_from_date
+    IF p_from_date < SYSDATE THEN
+        DBMS_OUTPUT.PUT_LINE('Warning: Specified trip start date (' || p_from_date ||
+                             ') is lower than the current date.' || 'Current date (' || SYSDATE ||
+                             ') will be used instead');
+    END IF;
+
     SELECT AvailableTripObject(
         trip_id,
         trip_name,
@@ -234,7 +244,10 @@ BEGIN
     RETURN l_result;
 END;
 
+SELECT * FROM TripsView;
+
 SELECT * FROM getAvailableTripsTo('Polska', '2020-01-01', '2022-12-31');
-SELECT * FROM getAvailableTripsTo('Francja', '2020-01-01', '2022-12-31');
-SELECT * FROM getAvailableTripsTo('Chiny', '2020-01-01', '2022-12-31');
 SELECT * FROM getAvailableTripsTo('Polska', '2022-06-01', '2022-12-31');
+SELECT * FROM getAvailableTripsTo('Hiszpania', '2020-06-01', '2022-12-31'); -- no available places
+SELECT * FROM getAvailableTripsTo('Francja', '2020-01-01', '2022-12-31');   -- this trip took place before the current date
+SELECT * FROM getAvailableTripsTo('Chiny', '2020-01-01', '2022-12-31');     -- there are no trips to China in the database
