@@ -22,7 +22,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Cannot book less than 1 place for a trip');
     END IF;
 
-    l_available_places := getAvailablePlaces(p_trip_id);
+    l_available_places := getAvailablePlacesNum(p_trip_id);
 
     IF l_available_places = 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'There are no available places for a trip with id ' || p_trip_id);
@@ -38,7 +38,7 @@ BEGIN
 END;
 
 -- tests
-SELECT trip_id, getAvailablePlaces(trip_id)
+SELECT trip_id, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 -- Trip does not exist
@@ -76,7 +76,7 @@ BEGIN
     addReservation(2, 1, 5);
 END;
 
-SELECT trip_id, getAvailablePlaces(trip_id)
+SELECT trip_id, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 -- 5. b)
@@ -115,7 +115,7 @@ BEGIN
         -- Check if can make cancelled reservation available (paid) again
         -- (check if there are enough empty places for a trip)
         IF l_curr_status = 'c' THEN
-            l_available_places := getAvailablePlaces(l_trip_id);
+            l_available_places := getAvailablePlacesNum(l_trip_id);
 
             IF l_available_places < l_no_places THEN
                 RAISE_APPLICATION_ERROR(-20001, 'Not enough places available to update the cancelled reservation status');
@@ -159,7 +159,7 @@ END;
 SELECT *
 FROM Reservations
 WHERE status = 'c'
-    AND getAvailablePlaces(trip_id) < no_places;
+    AND getAvailablePlacesNum(trip_id) < no_places;
 
 -- [Error] Change cancelled reservation to paid when there are not enough places available
 BEGIN
@@ -198,7 +198,7 @@ AS
 BEGIN
     SELECT
         no_places,
-        getAvailablePlaces(trip_id)
+        getAvailablePlacesNum(trip_id)
     INTO
         l_curr_no_places,
         l_available_places
@@ -225,7 +225,7 @@ BEGIN
 END;
 
 -- tests
-SELECT reservation_id, no_places, getAvailablePlaces(trip_id) AS available_places
+SELECT reservation_id, no_places, getAvailablePlacesNum(trip_id) AS available_places
 FROM Reservations;
 
 -- [Error] Wrong number of booked places (<= 0)
@@ -260,7 +260,7 @@ AS
 BEGIN
     SELECT
         max_no_places,
-        getBookedPlaces(p_trip_id)
+        getBookedPlacesNum(p_trip_id)
     INTO
         l_curr_max_no_places,
         l_booked_places
@@ -290,7 +290,7 @@ BEGIN
 END;
 
 -- tests
-SELECT trip_id, max_no_places, getBookedPlaces(trip_id) AS booked_places
+SELECT trip_id, max_no_places, getBookedPlacesNum(trip_id) AS booked_places
 FROM Trips;
 
 -- [Error] New max_no_places is lower than the total booked places for a trip
@@ -337,7 +337,7 @@ BEGIN
 END;
 
 -- tests
-SELECT trip_id, getAvailablePlaces(trip_id)
+SELECT trip_id, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 -- Trip does not exist
@@ -375,7 +375,7 @@ BEGIN
     addReservation(2, 1, 5);
 END;
 
-SELECT trip_id, getAvailablePlaces(trip_id)
+SELECT trip_id, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 DELETE FROM Reservations
@@ -423,7 +423,7 @@ END;
 SELECT *
 FROM Reservations
 WHERE status = 'c'
-    AND getAvailablePlaces(trip_id) < no_places;
+    AND getAvailablePlacesNum(trip_id) < no_places;
 
 -- [Error] Change cancelled reservation to paid when there are not enough places available
 BEGIN
@@ -437,7 +437,7 @@ END;
 
 -- [Error] Reservation does not exist
 BEGIN
-   modifyReservationStatus(12, 'c');
+   modifyReservationStatus(20, 'c');
 END;
 
 -- Correct modification from paid to cancelled
@@ -469,7 +469,7 @@ BEGIN
 END;
 
 -- tests
-SELECT reservation_id, no_places, getAvailablePlaces(trip_id) AS available_places
+SELECT reservation_id, no_places, getAvailablePlacesNum(trip_id) AS available_places
 FROM Reservations;
 
 -- [Error] Wrong number of booked places (<= 0)
@@ -510,7 +510,7 @@ END;
 
 
 -- tests
-SELECT trip_id, max_no_places, getBookedPlaces(trip_id) AS booked_places
+SELECT trip_id, max_no_places, getBookedPlacesNum(trip_id) AS booked_places
 FROM Trips;
 
 -- [Error] New max_no_places is lower than the total booked places for a trip
@@ -531,4 +531,9 @@ END;
 -- Correct (modify the max_no_places value)
 BEGIN
    modifyMaxNoPlaces(3, 7);
+END;
+
+-- Correct (modify the max_no_places value)
+BEGIN
+   modifyMaxNoPlaces(2, 10);
 END;

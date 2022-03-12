@@ -38,7 +38,7 @@ END;
 
 
 -- tests
-SELECT trip_id, trip_date, getAvailablePlaces(trip_id)
+SELECT trip_id, trip_date, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 -- insert the new reservation
@@ -93,7 +93,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Cannot book less than 1 place for a trip');
     END IF;
 
-    l_available_places := getAvailablePlaces(:NEW.trip_id);
+    l_available_places := getAvailablePlacesNum(:NEW.trip_id);
 
     IF l_available_places = 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'There are no available places for a trip with id ' || :NEW.trip_id);
@@ -126,7 +126,7 @@ BEGIN
         -- Check if can make cancelled reservation available (paid) again
         -- (check if there are enough empty places for a trip)
         IF :OLD.status = 'c' THEN
-            l_available_places := getAvailablePlaces(:NEW.trip_id);
+            l_available_places := getAvailablePlacesNum(:NEW.trip_id);
 
             IF l_available_places < :NEW.no_places THEN
                 RAISE_APPLICATION_ERROR(-20001, 'Not enough places available to update the cancelled reservation status');
@@ -146,7 +146,7 @@ DECLARE
     PRAGMA AUTONOMOUS_TRANSACTION;
     l_available_places Reservations.no_places%TYPE;
 BEGIN
-    l_available_places := getAvailablePlaces(:NEW.trip_id);
+    l_available_places := getAvailablePlacesNum(:NEW.trip_id);
 
     IF :NEW.no_places <= 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'The number of booked places should be greater than 0');
@@ -164,7 +164,7 @@ FOR EACH ROW
 DECLARE
     l_booked_places Reservations.no_places%TYPE;
 BEGIN
-    l_booked_places := getBookedPlaces(:NEW.trip_id);
+    l_booked_places := getBookedPlacesNum(:NEW.trip_id);
 
     IF :NEW.max_no_places = :OLD.max_no_places THEN
         DBMS_OUTPUT.PUT_LINE('The trip with id ' || :NEW.trip_id ||

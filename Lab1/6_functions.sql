@@ -1,7 +1,7 @@
 /*
 SCALAR FUNCTIONS
 */
-CREATE OR REPLACE FUNCTION getBookedPlaces(
+CREATE OR REPLACE FUNCTION getBookedPlacesNum(
     p_trip_id Trips.trip_id%TYPE
 )
 RETURN Reservations.no_places%TYPE
@@ -18,14 +18,14 @@ BEGIN
 END;
 
 
-CREATE OR REPLACE FUNCTION getAvailablePlaces(
+CREATE OR REPLACE FUNCTION getAvailablePlacesNum(
     p_trip_id Trips.trip_id%TYPE
 )
 RETURN Reservations.no_places%TYPE
 AS
     l_available_places Trips.max_no_places%TYPE;
 BEGIN
-    SELECT max_no_places - getBookedPlaces(trip_id)
+    SELECT max_no_places - getBookedPlacesNum(trip_id)
     INTO l_available_places
     FROM Trips
     WHERE trip_id = p_trip_id;

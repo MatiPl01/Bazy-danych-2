@@ -166,7 +166,7 @@ SELECT * FROM Reservations;
 /*
  * CREATE SCALAR FUNCTIONS
  */
-CREATE OR REPLACE FUNCTION getBookedPlaces(
+CREATE OR REPLACE FUNCTION getBookedPlacesNum(
     p_trip_id Trips.trip_id%TYPE
 )
 RETURN Reservations.no_places%TYPE
@@ -183,14 +183,14 @@ BEGIN
 END;
 
 
-CREATE OR REPLACE FUNCTION getAvailablePlaces(
+CREATE OR REPLACE FUNCTION getAvailablePlacesNum(
     p_trip_id Trips.trip_id%TYPE
 )
 RETURN Reservations.no_places%TYPE
 AS
     l_available_places Trips.max_no_places%TYPE;
 BEGIN
-    SELECT max_no_places - getBookedPlaces(trip_id)
+    SELECT max_no_places - getBookedPlacesNum(trip_id)
     INTO l_available_places
     FROM Trips
     WHERE trip_id = p_trip_id;
@@ -333,7 +333,7 @@ SELECT
     trip_date,
     name AS trip_name,
     max_no_places,
-    getAvailablePlaces(trip_id) AS no_available_places
+    getAvailablePlacesNum(trip_id) AS no_available_places
 FROM Trips;
 
 SELECT * FROM TripsView;
@@ -526,7 +526,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Cannot book less than 1 place for a trip');
     END IF;
 
-    l_available_places := getAvailablePlaces(p_trip_id);
+    l_available_places := getAvailablePlacesNum(p_trip_id);
 
     IF l_available_places = 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'There are no available places for a trip with id ' || p_trip_id);
@@ -542,7 +542,7 @@ BEGIN
 END;
 
 -- tests
-SELECT trip_id, getAvailablePlaces(trip_id)
+SELECT trip_id, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 -- Trip does not exist
@@ -580,7 +580,7 @@ BEGIN
     addReservation(2, 1, 5);
 END;
 
-SELECT trip_id, getAvailablePlaces(trip_id)
+SELECT trip_id, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 
@@ -619,7 +619,7 @@ BEGIN
         -- Check if can make cancelled reservation available (paid) again
         -- (check if there are enough empty places for a trip)
         IF l_curr_status = 'c' THEN
-            l_available_places := getAvailablePlaces(l_trip_id);
+            l_available_places := getAvailablePlacesNum(l_trip_id);
 
             IF l_available_places < l_no_places THEN
                 RAISE_APPLICATION_ERROR(-20001, 'Not enough places available to update the cancelled reservation status');
@@ -629,7 +629,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Status: ' || p_status || ' is not a valid reservation status');
     END CASE;
 
-    -- If everything is correct, update teh reservation status
+    -- If everything is correct, update the reservation status
     UPDATE Reservations
     SET status = p_status
     WHERE reservation_id = p_reservation_id;
@@ -663,7 +663,7 @@ END;
 SELECT *
 FROM Reservations
 WHERE status = 'c'
-    AND getAvailablePlaces(trip_id) < no_places;
+    AND getAvailablePlacesNum(trip_id) < no_places;
 
 -- [Error] Change cancelled reservation to paid when there are not enough places available
 BEGIN
@@ -677,7 +677,7 @@ END;
 
 -- [Error] Reservation does not exist
 BEGIN
-   modifyReservationStatus(12, 'c');
+   modifyReservationStatus(20, 'c');
 END;
 
 -- Correct modification from paid to cancelled
@@ -701,7 +701,7 @@ AS
 BEGIN
     SELECT
         no_places,
-        getAvailablePlaces(trip_id)
+        getAvailablePlacesNum(trip_id)
     INTO
         l_curr_no_places,
         l_available_places
@@ -728,7 +728,7 @@ BEGIN
 END;
 
 -- tests
-SELECT reservation_id, no_places, getAvailablePlaces(trip_id) AS available_places
+SELECT reservation_id, no_places, getAvailablePlacesNum(trip_id) AS available_places
 FROM Reservations;
 
 -- [Error] Wrong number of booked places (<= 0)
@@ -739,16 +739,17 @@ END;
 -- [Error] Too many booked places
 /*
 already booked:              1
-available:                   2
-can book at most (in total): 3
+available:                   5
+can book at most (in total): 6
 */
+
 BEGIN
-   modifyReservationNoPlaces(1, 4);
+   modifyReservationNoPlaces(1, 7);
 END;
 
 -- Correct
 BEGIN
-   modifyReservationNoPlaces(1, 3);
+   modifyReservationNoPlaces(1, 6);
 END;
 
 
@@ -762,7 +763,7 @@ AS
 BEGIN
     SELECT
         max_no_places,
-        getBookedPlaces(p_trip_id)
+        getBookedPlacesNum(p_trip_id)
     INTO
         l_curr_max_no_places,
         l_booked_places
@@ -792,7 +793,7 @@ BEGIN
 END;
 
 -- tests
-SELECT trip_id, max_no_places, getBookedPlaces(trip_id) AS booked_places
+SELECT trip_id, max_no_places, getBookedPlacesNum(trip_id) AS booked_places
 FROM Trips;
 
 -- [Error] New max_no_places is lower than the total booked places for a trip
@@ -813,6 +814,11 @@ END;
 -- Correct (modify the max_no_places value)
 BEGIN
    modifyMaxNoPlaces(3, 7);
+END;
+
+-- Correct (modify the max_no_places value)
+BEGIN
+   modifyMaxNoPlaces(2, 10);
 END;
 
 
@@ -855,7 +861,7 @@ END;
 
 
 -- tests
-SELECT trip_id, trip_date, getAvailablePlaces(trip_id)
+SELECT trip_id, trip_date, getAvailablePlacesNum(trip_id)
 FROM Trips;
 
 -- insert the new reservation
@@ -908,7 +914,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'Cannot book less than 1 place for a trip');
     END IF;
 
-    l_available_places := getAvailablePlaces(:NEW.trip_id);
+    l_available_places := getAvailablePlacesNum(:NEW.trip_id);
 
     IF l_available_places = 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'There are no available places for a trip with id ' || :NEW.trip_id);
@@ -919,7 +925,7 @@ BEGIN
 END;
 
 
--- 7. trigger before reservation status change
+-- trigger before reservation status change
 CREATE OR REPLACE TRIGGER BU_ReservationStatusUpdate
 BEFORE UPDATE
 OF status ON Reservations
@@ -942,7 +948,7 @@ BEGIN
         -- Check if can make cancelled reservation available (paid) again
         -- (check if there are enough empty places for a trip)
         IF :OLD.status = 'c' THEN
-            l_available_places := getAvailablePlaces(:NEW.trip_id);
+            l_available_places := getAvailablePlacesNum(:NEW.trip_id);
 
             IF l_available_places < :NEW.no_places THEN
                 RAISE_APPLICATION_ERROR(-20001, 'Not enough places available to update the cancelled reservation status');
@@ -954,7 +960,7 @@ BEGIN
 END;
 
 
--- 7. trigger before reservation number of places change
+-- trigger before reservation number of places change
 CREATE OR REPLACE TRIGGER BU_ReservationNoPlacesUpdate
 BEFORE UPDATE
 OF no_places ON Reservations
@@ -963,7 +969,7 @@ DECLARE
     PRAGMA AUTONOMOUS_TRANSACTION;
     l_available_places Reservations.no_places%TYPE;
 BEGIN
-    l_available_places := getAvailablePlaces(:NEW.trip_id);
+    l_available_places := getAvailablePlacesNum(:NEW.trip_id);
 
     IF :NEW.no_places <= 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'The number of booked places should be greater than 0');
@@ -974,7 +980,7 @@ BEGIN
 END;
 
 
--- 7. trigger before trip max places number change
+-- trigger before trip max places number change
 CREATE OR REPLACE TRIGGER BU_TripMaxNoPlacesUpdate
 BEFORE UPDATE
 OF max_no_places ON Trips
@@ -982,7 +988,7 @@ FOR EACH ROW
 DECLARE
     l_booked_places Reservations.no_places%TYPE;
 BEGIN
-    l_booked_places := getBookedPlaces(:NEW.trip_id);
+    l_booked_places := getBookedPlacesNum(:NEW.trip_id);
 
     IF :NEW.max_no_places = :OLD.max_no_places THEN
         DBMS_OUTPUT.PUT_LINE('The trip with id ' || :NEW.trip_id ||
@@ -1029,7 +1035,7 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20001, 'There is no reservation with id ' || p_reservation_id || ' in the database');
     END IF;
 
-    -- If everything is correct, update teh reservation status
+    -- If everything is correct, update the reservation status
     UPDATE Reservations
     SET status = p_status
     WHERE reservation_id = p_reservation_id;
