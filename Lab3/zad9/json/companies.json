@@ -1,0 +1,24 @@
+[{
+  "_id": {
+    "$oid": "6263e1123ca1655ba6a4dd8f"
+  },
+  "name": "Travellio",
+  "tours": [
+    {
+      "$oid": "5c88fa8cf4afda39709c2955"
+    },
+    {
+      "$oid": "5c88fa8cf4afda39709c295d"
+    }
+  ]
+},{
+  "_id": {
+    "$oid": "6263e1123ca1655ba6a4dd90"
+  },
+  "name": "Dream holiday",
+  "tours": [
+    {
+      "$oid": "5c88fa8cf4afda39709c295a"
+    }
+  ]
+}]
