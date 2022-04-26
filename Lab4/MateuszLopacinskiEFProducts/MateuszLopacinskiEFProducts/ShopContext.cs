@@ -5,6 +5,7 @@ namespace MateuszLopacinskiEFProducts
     internal class ShopContext : DbContext
     {
         public DbSet<Product> Products { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
