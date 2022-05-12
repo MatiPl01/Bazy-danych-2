@@ -14,6 +14,9 @@
         <property name="hbm2ddl.auto">update</property>
 
         <mapping class="com.matipl01.Product"/>
+        <mapping class="com.matipl01.Supplier"/>
+        <mapping class="com.matipl01.Invoice"/>
         <mapping class="com.matipl01.Category"/>
+        <mapping class="com.matipl01.Invoice"/>
     </session-factory>
 </hibernate-configuration>

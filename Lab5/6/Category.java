@@ -1,8 +1,8 @@
 package com.matipl01;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "Categories")
@@ -14,7 +14,7 @@ public class Category {
     private String name;
 
     @OneToMany(mappedBy = "category")
-    private final Collection<Product> products = new ArrayList<>();
+    private final Collection<Product> products = new HashSet<>();
 
     public Category() {}
 

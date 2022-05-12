@@ -9,15 +9,15 @@ import java.util.Collection;
 @Table(name = "Suppliers")
 public class Supplier {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "Supplier_GEN")
+    @SequenceGenerator(name = "Supplier_GEN", sequenceName = "Supplier_SEQ")
     public int supplierID;
 
     private String companyName;
     private String street;
     private String city;
 
-    @OneToMany
-    @JoinColumn(name = "productID")
+    @OneToMany(mappedBy = "supplier")
     private final Collection<Product> products = new ArrayList<>();
 
     public Supplier() {}

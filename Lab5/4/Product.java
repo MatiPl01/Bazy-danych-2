@@ -2,12 +2,12 @@ package com.matipl01;
 
 import javax.persistence.*;
 
-@Table(name = "Products")
 @Entity
-@SequenceGenerator(name = "Product_SEQ")
+@Table(name = "Products")
 public class Product {
     @Id
-    @GeneratedValue(strategy=GenerationType.SEQUENCE, generator = "Product_SEQ")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "Product_GEN")
+    @SequenceGenerator(name = "Product_GEN", sequenceName = "Product_SEQ")
     private int productID;
 
     private String productName;
@@ -15,7 +15,7 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "supplierID")
-    Supplier supplier;
+    private Supplier supplier;
 
     public Product() {}
 

@@ -1,6 +1,9 @@
 package com.matipl01;
 
+import javax.management.InvalidAttributeValueException;
 import javax.persistence.*;
+import java.util.Collection;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "Products")
@@ -21,6 +24,9 @@ public class Product {
     @JoinColumn(name = "categoryID")
     private Category category;
 
+    @ManyToMany(mappedBy = "products")
+    private Collection<Invoice> invoices = new HashSet<>();
+
     public Product() {}
 
     public Product(String productName, Category category, int unitsInStock) {
@@ -32,6 +38,10 @@ public class Product {
     @Override
     public String toString() {
         return productName + " (" + unitsInStock + " szt.)";
+    }
+
+    public String getName() {
+        return productName;
     }
 
     public void setSupplier(Supplier supplier) {
@@ -48,5 +58,18 @@ public class Product {
 
     public Category getCategory() {
         return category;
+    }
+
+    public Collection<Invoice> getInvoices() {
+        return invoices;
+    }
+
+    public void sell(Invoice invoice, int quantity) throws InvalidAttributeValueException {
+        if (unitsInStock < quantity) {
+            throw new InvalidAttributeValueException("Unable to sell " + quantity + " products");
+        }
+        unitsInStock -= quantity;
+        invoice.addProduct(this, quantity);
+        invoices.add(invoice);
     }
 }

@@ -1,9 +1,9 @@
 package com.matipl01;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "Suppliers")
@@ -18,7 +18,7 @@ public class Supplier {
     private String city;
 
     @OneToMany(mappedBy = "supplier")
-    private final Collection<Product> products = new ArrayList<>();
+    private final Collection<Product> products = new HashSet<>();
 
     public Supplier() {}
 
